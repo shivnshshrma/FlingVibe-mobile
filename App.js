@@ -18,7 +18,7 @@ import { Camera } from 'expo-camera';
 import { Audio } from 'expo-audio';
 
 // Default API URL (can be customized via settings modal in the app)
-const DEFAULT_API_URL = 'http://192.168.1.7:8000'; 
+const DEFAULT_API_URL = 'https://flingvibe-backend.onrender.com'; 
 
 export default function App() {
   // App States
@@ -311,14 +311,20 @@ export default function App() {
             allowsInlineMediaPlayback={true}
             mediaPlaybackRequiresUserAction={false}
             mediaCapturePermissionGrantType="grant"
+            allowsProtectedMedia={true}
+            androidLayerType="hardware"
             originWhitelist={['*']}
             userAgent={Platform.OS === 'ios'
               ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1'
               : 'Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36'
             }
             onPermissionRequest={(event) => {
+              console.log('WebView permission request:', event.resources);
               event.grant(event.resources);
             }}
+            allowFileAccess={true}
+            mixedContentMode="always"
+            geolocationEnabled={true}
             style={styles.webview}
             renderLoading={() => (
               <View style={styles.webviewLoading}>

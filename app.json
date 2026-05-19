@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "fling vibe",
-    "slug": "fling-vibe",
+    "slug": "flingvibe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shivnshshrmasorganization.flingvibe",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,8 +28,12 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
-      ]
+      ],
+      "package": "com.shivnshshrmasorganization.flingvibe"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,7 +46,21 @@
           "microphonePermission": "Allow FlingVibe to access your microphone for voice chats.",
           "recordAudioAndroid": true
         }
-      ]
-    ]
+      ],
+      "expo-audio",
+      "expo-video"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "bb115bf1-8ca8-4b43-99ca-9b09561c4d23"
+      }
+    },
+    "owner": "shivnshshrmas-organization",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/bb115bf1-8ca8-4b43-99ca-9b09561c4d23"
+    }
   }
 }
