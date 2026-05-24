@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Camera } from 'expo-camera';
-import { Audio } from 'expo-audio';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 // Default API URL (can be customized via settings modal in the app)
 const DEFAULT_API_URL = 'https://flingvibe-backend.onrender.com'; 
@@ -88,7 +89,7 @@ export default function App() {
       const cameraStatus = await Camera.requestCameraPermissionsAsync();
       
       // 2. Request Audio/Microphone Permission
-      const audioStatus = await Audio.requestPermissionsAsync();
+      const audioStatus = await Camera.requestMicrophonePermissionsAsync();
       
       if (cameraStatus.status !== 'granted' || audioStatus.status !== 'granted') {
         Alert.alert(
@@ -232,23 +233,14 @@ export default function App() {
 
   return (
     <View style={styles.appContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
-      
+      <StatusBar barStyle="light-content" backgroundColor="#050505" translucent={false} />
+
       {/* 1. LOGIN SCREEN */}
       {appState === 'LOGIN' && (
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
-          {/* Settings Trigger Icon */}
-          <TouchableOpacity 
-            style={styles.settingsButton}
-            onPress={() => setShowSettings(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
-
           <View style={styles.innerContainer}>
             {/* Header / Logo */}
             <View style={styles.logoContainer}>
@@ -299,53 +291,43 @@ export default function App() {
 
       {/* 2. ACTIVE WEBVIEW SESSION */}
       {appState === 'ACTIVE' && sessionToken && (
-        <View style={styles.container}>
-          {/* WebView Container */}
-          <WebView
-            source={{ uri: 'https://flingster.com/' }}
-            injectedJavaScript={cookieInjectionJS}
-            sharedCookiesEnabled={true}
-            thirdPartyCookiesEnabled={true}
-            domStorageEnabled={true}
-            javaScriptEnabled={true}
-            allowsInlineMediaPlayback={true}
-            mediaPlaybackRequiresUserAction={false}
-            mediaCapturePermissionGrantType="grant"
-            allowsProtectedMedia={true}
-            androidLayerType="hardware"
-            originWhitelist={['*']}
-            userAgent={Platform.OS === 'ios'
-              ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1'
-              : 'Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36'
-            }
-            onPermissionRequest={(event) => {
-              console.log('WebView permission request:', event.resources);
-              event.grant(event.resources);
-            }}
-            allowFileAccess={true}
-            mixedContentMode="always"
-            geolocationEnabled={true}
-            style={styles.webview}
-            renderLoading={() => (
-              <View style={styles.webviewLoading}>
-                <ActivityIndicator color="#E63946" size="large" />
-                <Text style={styles.loadingText}>Connecting Secure Premium Link...</Text>
-              </View>
-            )}
-            startInLoadingState={true}
-          />
-
-          {/* Custom Bottom Safe Footer */}
-          <View style={styles.sessionFooter}>
-            <TouchableOpacity 
-              style={styles.bottomExitButton}
-              onPress={handleExitSession}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.bottomExitButtonText}>🚪 Close Premium Session</Text>
-            </TouchableOpacity>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+          <View style={{ flex: 1 }}>
+            <WebView
+              source={{ uri: 'https://flingster.com/' }}
+              injectedJavaScript={cookieInjectionJS}
+              sharedCookiesEnabled={true}
+              thirdPartyCookiesEnabled={true}
+              domStorageEnabled={true}
+              javaScriptEnabled={true}
+              allowsInlineMediaPlayback={true}
+              mediaPlaybackRequiresUserAction={false}
+              mediaCapturePermissionGrantType="grant"
+              allowsProtectedMedia={true}
+              androidLayerType="hardware"
+              originWhitelist={['*']}
+              userAgent={Platform.OS === 'ios'
+                ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1'
+                : 'Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36'
+              }
+              onPermissionRequest={(event) => {
+                console.log('WebView permission request:', event.resources);
+                event.grant(event.resources);
+              }}
+              allowFileAccess={true}
+              mixedContentMode="always"
+              geolocationEnabled={true}
+              style={styles.webview}
+              renderLoading={() => (
+                <View style={styles.webviewLoading}>
+                  <ActivityIndicator color="#E63946" size="large" />
+                  <Text style={styles.loadingText}>Connecting Secure Premium Link...</Text>
+                </View>
+              )}
+              startInLoadingState={true}
+            />
           </View>
-        </View>
+        </SafeAreaView>
       )}
 
       {/* 3. EXPIRED SESSION SCREEN */}
@@ -380,54 +362,54 @@ export default function App() {
         </View>
       )}
 
-      {/* ⚙️ SETTINGS MODAL */}
-      <Modal
-        visible={showSettings}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSettings(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>🔧 Developer Settings</Text>
-            
-            <View style={styles.divider} />
-            
-            <Text style={styles.modalLabel}>API Base URL</Text>
-            <Text style={styles.modalDescription}>
-              Point the app to your backend IP (e.g. http://192.168.1.15:8000) for testing on your phone.
-            </Text>
-            
-            <TextInput
-              style={styles.modalInput}
-              value={tempApiUrl}
-              onChangeText={setTempApiUrl}
-              placeholder="e.g. http://192.168.1.15:8000"
-              placeholderTextColor="#555"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+        {/* ⚙️ SETTINGS MODAL */}
+        <Modal
+          visible={showSettings}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowSettings(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>🔧 Developer Settings</Text>
+              
+              <View style={styles.divider} />
+              
+              <Text style={styles.modalLabel}>API Base URL</Text>
+              <Text style={styles.modalDescription}>
+                Point the app to your backend IP (e.g. http://192.168.1.15:8000) for testing on your phone.
+              </Text>
+              
+              <TextInput
+                style={styles.modalInput}
+                value={tempApiUrl}
+                onChangeText={setTempApiUrl}
+                placeholder="e.g. http://192.168.1.15:8000"
+                placeholderTextColor="#555"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-            <View style={styles.modalButtonsContainer}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={() => {
-                  setShowSettings(false);
-                  setTempApiUrl(apiUrl);
-                }}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalSaveButton}
-                onPress={handleSaveSettings}
-              >
-                <Text style={styles.modalSaveText}>Save Settings</Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity 
+                  style={styles.modalCancelButton}
+                  onPress={() => {
+                    setShowSettings(false);
+                    setTempApiUrl(apiUrl);
+                  }}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.modalSaveButton}
+                  onPress={handleSaveSettings}
+                >
+                  <Text style={styles.modalSaveText}>Save Settings</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
     </View>
   );
 }

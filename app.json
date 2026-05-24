@@ -46,9 +46,7 @@
           "microphonePermission": "Allow FlingVibe to access your microphone for voice chats.",
           "recordAudioAndroid": true
         }
-      ],
-      "expo-audio",
-      "expo-video"
+      ]
     ],
     "extra": {
       "eas": {
