@@ -2,11 +2,11 @@
   "expo": {
     "name": "fling vibe",
     "slug": "flingvibe",
-    "version": "1.0.0",
+    "privacy": "public",
+    "description": "Account sharing platform",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -24,7 +24,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -46,19 +45,15 @@
           "microphonePermission": "Allow FlingVibe to access your microphone for voice chats.",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "eas": {
-        "projectId": "bb115bf1-8ca8-4b43-99ca-9b09561c4d23"
+        "projectId": "91f423ab-7eb7-4a7c-ba63-6b82bf422cb1"
       }
     },
-    "owner": "shivnshshrmas-organization",
-    "runtimeVersion": {
-      "policy": "sdkVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/bb115bf1-8ca8-4b43-99ca-9b09561c4d23"
-    }
+    "owner": "shivnshshrma"
   }
 }
