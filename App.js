@@ -238,12 +238,15 @@ export default function App() {
             mediaCapturePermissionGrantType="grant"
             allowsProtectedMedia={true}
             androidLayerType="hardware"
+            webviewDebuggingEnabled={true}
             originWhitelist={['*']}
             userAgent={Platform.OS === 'ios'
               ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1'
               : 'Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36'
             }
-            onPermissionRequest={(e) => e.grant(e.resources)}
+            onPermissionRequest={(e) => {
+              if (e.resources) e.grant(e.resources);
+            }}
             allowFileAccess={true}
             mixedContentMode="always"
             style={styles.webview}
