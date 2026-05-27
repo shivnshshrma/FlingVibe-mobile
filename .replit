@@ -1,0 +1,14 @@
+run = "npx expo start --tunnel"
+
+[nix]
+channel = "stable-24_05"
+
+[nix.packages]
+nodejs = "nodejs_20"
+
+[env]
+CI = "1"
+EXPO_NO_DOTENV = "1"
+
+[deployment]
+run = ["sh", "-c", "npx expo start --tunnel"]
