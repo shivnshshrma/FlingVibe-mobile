@@ -5,12 +5,12 @@ modules = ["nodejs-20"]
 channel = "stable-24_11"
 
 [[ports]]
-localPort = 8081
-externalPort = 80
-
-[[ports]]
 localPort = 3000
 externalPort = 3000
+
+[[ports]]
+localPort = 8081
+externalPort = 80
 
 [env]
 CI = "1"
@@ -44,5 +44,5 @@ waitForPort = 3000
 outputType = "console"
 
 [deployment]
-deploymentTarget = "vm"
-run = ["bash", "-c", "npm install && npx expo start --port 3000 --non-interactive"]
+deploymentTarget = "autoscale"
+run = ["node", "serve.js"]
