@@ -1,4 +1,5 @@
 run = "npm install && npm run start"
+modules = ["nodejs-20"]
 
 [nix]
 channel = "stable-24_11"
@@ -7,6 +8,37 @@ channel = "stable-24_11"
 localPort = 8081
 externalPort = 80
 
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
 [env]
 CI = "1"
 EXPO_NO_DOTENV = "1"
+
+[agent]
+expertMode = true
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && npx expo start --port 3000 --non-interactive"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "console"
