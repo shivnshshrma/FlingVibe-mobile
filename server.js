@@ -4,7 +4,6 @@ const QRCode = require('qrcode');
 const GATEWAY_PORT = process.env.PORT || 3000;
 const METRO_PORT = 8080;
 
-// Cache QR codes per-host so we only generate once per domain
 const qrCache = new Map();
 
 async function getQr(host) {
@@ -51,15 +50,24 @@ const buildHtml = (qrDataUrl, expUrl) => `<!DOCTYPE html>
 </body>
 </html>`;
 
+// Rewrite internal Metro addresses in manifest/JSON responses
+// so Expo Go fetches bundles from the public URL, not localhost:8080
+function rewriteBody(body, publicHost) {
+  return body
+    .replace(/localhost:8080/g, publicHost)
+    .replace(/127\.0\.0\.1:8080/g, publicHost)
+    .replace(/http:\/\/localhost/g, `http://${publicHost}`)
+    .replace(/http:\/\/127\.0\.0\.1/g, `http://${publicHost}`);
+}
+
 const server = http.createServer(async (req, res) => {
+  const publicHost = req.headers['host'] || 'localhost';
   const isBrowserRoot = req.url === '/' && (req.headers['accept'] || '').includes('text/html');
 
   if (isBrowserRoot) {
     try {
-      // Use the real Host header — always the correct public domain
-      const host = req.headers['host'] || 'localhost';
-      const { qrDataUrl, expUrl } = await getQr(host);
-      console.log(`QR served for host: ${host}  →  ${expUrl}`);
+      const { qrDataUrl, expUrl } = await getQr(publicHost);
+      console.log(`QR → exp://${publicHost}`);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(buildHtml(qrDataUrl, expUrl));
     } catch (err) {
@@ -69,7 +77,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Proxy all Expo Go / Metro requests to the internal Metro bundler
+  // Proxy to Metro, rewriting internal addresses in the response
   const proxyReq = http.request(
     {
       host: '127.0.0.1',
@@ -79,8 +87,31 @@ const server = http.createServer(async (req, res) => {
       headers: { ...req.headers, host: `localhost:${METRO_PORT}` },
     },
     (proxyRes) => {
-      res.writeHead(proxyRes.statusCode, proxyRes.headers);
-      proxyRes.pipe(res);
+      const contentType = proxyRes.headers['content-type'] || '';
+      const needsRewrite = contentType.includes('application/json')
+        || contentType.includes('application/expo')
+        || contentType.includes('text/javascript')
+        || contentType.includes('application/javascript');
+
+      if (needsRewrite) {
+        // Buffer the full response so we can rewrite internal URLs
+        const chunks = [];
+        proxyRes.on('data', chunk => chunks.push(chunk));
+        proxyRes.on('end', () => {
+          const original = Buffer.concat(chunks).toString('utf8');
+          const rewritten = rewriteBody(original, publicHost);
+          const headers = {
+            ...proxyRes.headers,
+            'content-length': Buffer.byteLength(rewritten),
+          };
+          delete headers['content-encoding']; // avoid gzip mismatch
+          res.writeHead(proxyRes.statusCode, headers);
+          res.end(rewritten);
+        });
+      } else {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res);
+      }
     }
   );
 
@@ -94,5 +125,4 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(GATEWAY_PORT, '0.0.0.0', () => {
   console.log(`Gateway on :${GATEWAY_PORT} → Metro on :${METRO_PORT}`);
-  console.log('QR code URL will be built from the incoming Host header');
 });
