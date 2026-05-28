@@ -45,7 +45,7 @@ waitForPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["node", "server.js"]
+run = ["bash", "-c", "npm install && (npx expo start --port 8080 --non-interactive &) && node server.js"]
 
 [userenv]
 
