@@ -9,8 +9,8 @@ localPort = 3000
 externalPort = 3000
 
 [[ports]]
-localPort = 8081
-externalPort = 80
+localPort = 8082
+externalPort = 3001
 
 [env]
 CI = "1"
@@ -40,8 +40,8 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install && npx expo start --port 8081 --non-interactive"
-waitForPort = 8081
+args = "npm install && npx expo start --port 3000 --non-interactive"
+waitForPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
