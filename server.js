@@ -8,7 +8,7 @@ const qrCache = new Map();
 
 async function getQr(host) {
   if (qrCache.has(host)) return qrCache.get(host);
-  const expUrl = `exp://${host}`;
+  const expUrl = `exps://${host}`;
   const qrDataUrl = await QRCode.toDataURL(expUrl, {
     width: 480,
     margin: 2,
@@ -50,34 +50,52 @@ const buildHtml = (qrDataUrl, expUrl) => `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Rewrite internal Metro addresses in manifest/JSON responses
-// so Expo Go fetches bundles from the public URL, not localhost:8080
+// Rewrite internal Metro addresses → public HTTPS URL in manifest/JS responses
 function rewriteBody(body, publicHost) {
   return body
+    .replace(/http:\/\/localhost:8080/g, `https://${publicHost}`)
+    .replace(/http:\/\/127\.0\.0\.1:8080/g, `https://${publicHost}`)
+    .replace(/"localhost:8080"/g, `"${publicHost}"`)
+    .replace(/"127\.0\.0\.1:8080"/g, `"${publicHost}"`)
     .replace(/localhost:8080/g, publicHost)
-    .replace(/127\.0\.0\.1:8080/g, publicHost)
-    .replace(/http:\/\/localhost/g, `http://${publicHost}`)
-    .replace(/http:\/\/127\.0\.0\.1/g, `http://${publicHost}`);
+    .replace(/127\.0\.0\.1:8080/g, publicHost);
 }
 
 const server = http.createServer(async (req, res) => {
   const publicHost = req.headers['host'] || 'localhost';
-  const isBrowserRoot = req.url === '/' && (req.headers['accept'] || '').includes('text/html');
+  const accept = req.headers['accept'] || '';
 
-  if (isBrowserRoot) {
-    try {
-      const { qrDataUrl, expUrl } = await getQr(publicHost);
-      console.log(`QR → exp://${publicHost}`);
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(buildHtml(qrDataUrl, expUrl));
-    } catch (err) {
-      res.writeHead(500);
-      res.end('QR generation failed: ' + err.message);
+  // Expo Go manifest requests carry these headers
+  const isExpoGoRequest = req.headers['expo-platform']
+    || req.headers['expo-sdk-version']
+    || req.headers['expo-runtime-version'];
+
+  if (req.url === '/') {
+    if (accept.includes('text/html')) {
+      // Browser — serve the QR landing page
+      try {
+        const { qrDataUrl, expUrl } = await getQr(publicHost);
+        console.log(`QR → exps://${publicHost}`);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(buildHtml(qrDataUrl, expUrl));
+      } catch (err) {
+        res.writeHead(500);
+        res.end('QR generation failed: ' + err.message);
+      }
+      return;
     }
-    return;
+
+    if (!isExpoGoRequest) {
+      // Health checks, curl probes, etc. — reply 200 without touching Metro
+      // Proxying these to Metro causes it to start a web bundle, which fails
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('OK');
+      return;
+    }
+    // Falls through to proxy for genuine Expo Go manifest requests
   }
 
-  // Proxy to Metro, rewriting internal addresses in the response
+  // Proxy everything else (Expo Go manifest + bundle requests) to Metro
   const proxyReq = http.request(
     {
       host: '127.0.0.1',
@@ -94,7 +112,6 @@ const server = http.createServer(async (req, res) => {
         || contentType.includes('application/javascript');
 
       if (needsRewrite) {
-        // Buffer the full response so we can rewrite internal URLs
         const chunks = [];
         proxyRes.on('data', chunk => chunks.push(chunk));
         proxyRes.on('end', () => {
@@ -104,7 +121,7 @@ const server = http.createServer(async (req, res) => {
             ...proxyRes.headers,
             'content-length': Buffer.byteLength(rewritten),
           };
-          delete headers['content-encoding']; // avoid gzip mismatch
+          delete headers['content-encoding'];
           res.writeHead(proxyRes.statusCode, headers);
           res.end(rewritten);
         });
@@ -117,7 +134,7 @@ const server = http.createServer(async (req, res) => {
 
   proxyReq.on('error', () => {
     res.writeHead(503, { 'Content-Type': 'text/plain' });
-    res.end('Metro bundler is starting, please try again in a moment.');
+    res.end('Metro is still starting up, please try again in a moment.');
   });
 
   req.pipe(proxyReq);
