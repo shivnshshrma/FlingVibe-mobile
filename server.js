@@ -2,7 +2,7 @@ const http = require('http');
 const QRCode = require('qrcode');
 
 const GATEWAY_PORT = process.env.PORT || 3000;
-const METRO_PORT = 8080;
+const METRO_PORT = 8082;
 
 const qrCache = new Map();
 
@@ -50,15 +50,16 @@ const buildHtml = (qrDataUrl, expUrl) => `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Rewrite internal Metro addresses → public HTTPS URL in manifest/JS responses
+// Rewrite any internal Metro addresses in manifest/JS responses
+// so Expo Go fetches bundles from the correct public HTTPS URL
 function rewriteBody(body, publicHost) {
   return body
-    .replace(/http:\/\/localhost:8080/g, `https://${publicHost}`)
-    .replace(/http:\/\/127\.0\.0\.1:8080/g, `https://${publicHost}`)
-    .replace(/"localhost:8080"/g, `"${publicHost}"`)
-    .replace(/"127\.0\.0\.1:8080"/g, `"${publicHost}"`)
-    .replace(/localhost:8080/g, publicHost)
-    .replace(/127\.0\.0\.1:8080/g, publicHost);
+    .replace(new RegExp(`https?://${publicHost.replace(/\./g, '\\.')}:${METRO_PORT}`, 'g'), `https://${publicHost}`)
+    .replace(new RegExp(`${publicHost.replace(/\./g, '\\.')}:${METRO_PORT}`, 'g'), publicHost)
+    .replace(new RegExp(`http://localhost:${METRO_PORT}`, 'g'), `https://${publicHost}`)
+    .replace(new RegExp(`http://127\\.0\\.0\\.1:${METRO_PORT}`, 'g'), `https://${publicHost}`)
+    .replace(new RegExp(`localhost:${METRO_PORT}`, 'g'), publicHost)
+    .replace(new RegExp(`127\\.0\\.0\\.1:${METRO_PORT}`, 'g'), publicHost);
 }
 
 const server = http.createServer(async (req, res) => {
@@ -71,8 +72,11 @@ const server = http.createServer(async (req, res) => {
     || req.headers['expo-runtime-version'];
 
   if (req.url === '/') {
-    if (accept.includes('text/html')) {
-      // Browser — serve the QR landing page
+    if (isExpoGoRequest) {
+      // Genuine Expo Go manifest request — fall through to proxy below
+    } else {
+      // Everything else at root (browsers, iframes, health checks, curl) →
+      // serve the QR landing page so no one sees the raw web app
       try {
         const { qrDataUrl, expUrl } = await getQr(publicHost);
         console.log(`QR → exps://${publicHost}`);
@@ -84,18 +88,9 @@ const server = http.createServer(async (req, res) => {
       }
       return;
     }
-
-    if (!isExpoGoRequest) {
-      // Health checks, curl probes, etc. — reply 200 without touching Metro
-      // Proxying these to Metro causes it to start a web bundle, which fails
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('OK');
-      return;
-    }
-    // Falls through to proxy for genuine Expo Go manifest requests
   }
 
-  // Proxy everything else (Expo Go manifest + bundle requests) to Metro
+  // Proxy Expo Go manifest + bundle requests to Metro
   const proxyReq = http.request(
     {
       host: '127.0.0.1',
@@ -117,10 +112,7 @@ const server = http.createServer(async (req, res) => {
         proxyRes.on('end', () => {
           const original = Buffer.concat(chunks).toString('utf8');
           const rewritten = rewriteBody(original, publicHost);
-          const headers = {
-            ...proxyRes.headers,
-            'content-length': Buffer.byteLength(rewritten),
-          };
+          const headers = { ...proxyRes.headers, 'content-length': Buffer.byteLength(rewritten) };
           delete headers['content-encoding'];
           res.writeHead(proxyRes.statusCode, headers);
           res.end(rewritten);
@@ -134,7 +126,7 @@ const server = http.createServer(async (req, res) => {
 
   proxyReq.on('error', () => {
     res.writeHead(503, { 'Content-Type': 'text/plain' });
-    res.end('Metro is still starting up, please try again in a moment.');
+    res.end('Metro is starting up, please try again in a moment.');
   });
 
   req.pipe(proxyReq);
