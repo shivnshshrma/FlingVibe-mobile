@@ -42,3 +42,7 @@ waitForPort = 3000
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[deployment]
+deploymentTarget = "vm"
+run = ["bash", "-c", "npm install && npx expo start --port 3000 --non-interactive"]
