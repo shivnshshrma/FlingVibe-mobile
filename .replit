@@ -53,3 +53,4 @@ run = ["node", "server.js"]
 CI = "1"
 EXPO_NO_DOTENV = "1"
 EXPO_DEVTOOLS_LISTEN_ADDRESS = "0.0.0.0"
+EXPO_TOKEN = "v6EkFadOZFV4KOc5-O3KvuJ7FiYV4PzlY4zklCwA"
