@@ -35,13 +35,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm install && npx expo start --port 3000 --non-interactive"
-waitForPort = 3000
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && npx expo start --port 8081 --non-interactive"
+waitForPort = 8081
 
 [deployment]
 deploymentTarget = "autoscale"
