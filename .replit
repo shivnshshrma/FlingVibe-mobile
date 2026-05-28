@@ -45,4 +45,11 @@ waitForPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["node", "serve.js"]
+run = ["bash", "-c", "npm install && npx expo start --port 3000 --non-interactive"]
+
+[userenv]
+
+[userenv.shared]
+CI = "1"
+EXPO_NO_DOTENV = "1"
+EXPO_DEVTOOLS_LISTEN_ADDRESS = "0.0.0.0"
