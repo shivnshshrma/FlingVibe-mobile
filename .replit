@@ -8,10 +8,6 @@ channel = "stable-24_11"
 localPort = 3000
 externalPort = 3000
 
-[[ports]]
-localPort = 8082
-externalPort = 3001
-
 [env]
 CI = "1"
 EXPO_NO_DOTENV = "1"
@@ -40,16 +36,16 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install && npx expo start --port 3000 --non-interactive"
+args = "npm install && EXPO_PACKAGER_PROXY_URL=https://fling-vibe-mobile--shivanshkumar6.replit.app npx expo start --port 3000"
 waitForPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "npm install && (npx expo start --port 8080 --non-interactive &) && node server.js"]
+run = ["bash", "-c", "npm install && EXPO_PACKAGER_PROXY_URL=https://fling-vibe-mobile--shivanshkumar6.replit.app npx expo start --port 3000"]
 
 [userenv]
 
 [userenv.shared]
-CI = "1"
 EXPO_NO_DOTENV = "1"
 EXPO_DEVTOOLS_LISTEN_ADDRESS = "0.0.0.0"
+REACT_NATIVE_PACKAGER_HOSTNAME = "fling-vibe-mobile--shivanshkumar6.replit.app"
