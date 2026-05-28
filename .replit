@@ -1,7 +1,7 @@
-run = "npm run start"
+run = "npm install && npm run start"
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-24_11"
 
 [[ports]]
 localPort = 8081
