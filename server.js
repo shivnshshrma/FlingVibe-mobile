@@ -4,7 +4,23 @@ const QRCode = require('qrcode');
 const GATEWAY_PORT = process.env.PORT || 3000;
 const METRO_PORT = 8080;
 
-const QR_HTML = (qrDataUrl, expUrl) => `<!DOCTYPE html>
+// Cache QR codes per-host so we only generate once per domain
+const qrCache = new Map();
+
+async function getQr(host) {
+  if (qrCache.has(host)) return qrCache.get(host);
+  const expUrl = `exp://${host}`;
+  const qrDataUrl = await QRCode.toDataURL(expUrl, {
+    width: 480,
+    margin: 2,
+    color: { dark: '#111111', light: '#ffffff' },
+  });
+  const result = { expUrl, qrDataUrl };
+  qrCache.set(host, result);
+  return result;
+}
+
+const buildHtml = (qrDataUrl, expUrl) => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
@@ -35,58 +51,48 @@ const QR_HTML = (qrDataUrl, expUrl) => `<!DOCTYPE html>
 </body>
 </html>`;
 
-async function main() {
-  const host = process.env.REPLIT_DEV_DOMAIN || process.env.HOSTNAME || 'localhost';
-  const expUrl = `exp://${host}`;
+const server = http.createServer(async (req, res) => {
+  const isBrowserRoot = req.url === '/' && (req.headers['accept'] || '').includes('text/html');
 
-  const qrDataUrl = await QRCode.toDataURL(expUrl, {
-    width: 480,
-    margin: 2,
-    color: { dark: '#111111', light: '#ffffff' },
-  });
-
-  const qrHtml = QR_HTML(qrDataUrl, expUrl);
-
-  const server = http.createServer((req, res) => {
-    const isBrowserRoot = req.url === '/' && (req.headers['accept'] || '').includes('text/html');
-
-    if (isBrowserRoot) {
+  if (isBrowserRoot) {
+    try {
+      // Use the real Host header — always the correct public domain
+      const host = req.headers['host'] || 'localhost';
+      const { qrDataUrl, expUrl } = await getQr(host);
+      console.log(`QR served for host: ${host}  →  ${expUrl}`);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(qrHtml);
-      return;
+      res.end(buildHtml(qrDataUrl, expUrl));
+    } catch (err) {
+      res.writeHead(500);
+      res.end('QR generation failed: ' + err.message);
     }
+    return;
+  }
 
-    // Proxy all Expo Go / Metro requests to the internal Metro bundler
-    const proxyReq = http.request(
-      {
-        host: '127.0.0.1',
-        port: METRO_PORT,
-        path: req.url,
-        method: req.method,
-        headers: { ...req.headers, host: `localhost:${METRO_PORT}` },
-      },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
-        proxyRes.pipe(res);
-      }
-    );
+  // Proxy all Expo Go / Metro requests to the internal Metro bundler
+  const proxyReq = http.request(
+    {
+      host: '127.0.0.1',
+      port: METRO_PORT,
+      path: req.url,
+      method: req.method,
+      headers: { ...req.headers, host: `localhost:${METRO_PORT}` },
+    },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    }
+  );
 
-    proxyReq.on('error', () => {
-      res.writeHead(503, { 'Content-Type': 'text/plain' });
-      res.end('Metro bundler is starting up, please try again in a moment.');
-    });
-
-    req.pipe(proxyReq);
+  proxyReq.on('error', () => {
+    res.writeHead(503, { 'Content-Type': 'text/plain' });
+    res.end('Metro bundler is starting, please try again in a moment.');
   });
 
-  server.listen(GATEWAY_PORT, '0.0.0.0', () => {
-    console.log(`Gateway running on :${GATEWAY_PORT}`);
-    console.log(`Proxying Expo Go requests → Metro on :${METRO_PORT}`);
-    console.log(`Expo Go link: ${expUrl}`);
-  });
-}
+  req.pipe(proxyReq);
+});
 
-main().catch((err) => {
-  console.error('Startup error:', err);
-  process.exit(1);
+server.listen(GATEWAY_PORT, '0.0.0.0', () => {
+  console.log(`Gateway on :${GATEWAY_PORT} → Metro on :${METRO_PORT}`);
+  console.log('QR code URL will be built from the incoming Host header');
 });
