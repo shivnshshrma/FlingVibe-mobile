@@ -1,14 +1,12 @@
-run = "npx expo start --tunnel"
+run = "npx expo export && node serve.js"
 
 [nix]
 channel = "stable-24_05"
 
-[nix.packages]
-nodejs = "nodejs_20"
+[[ports]]
+localPort = 3000
+externalPort = 80
 
 [env]
 CI = "1"
 EXPO_NO_DOTENV = "1"
-
-[deployment]
-run = ["sh", "-c", "npx expo start --tunnel"]
