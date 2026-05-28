@@ -1,28 +1,31 @@
 {
   "expo": {
-    "name": "fling vibe",
+    "name": "FlingVibe",
     "slug": "flingvibe",
     "privacy": "public",
-    "description": "Account sharing platform",
+    "description": "Premium Video Chat Access",
+    "scheme": "flingvibe",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A0A0F"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.shivnshshrmasorganization.flingvibe",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow FlingVibe to access your camera for video chats.",
+        "NSMicrophoneUsageDescription": "Allow FlingVibe to access your microphone for voice chats."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0A0A0F"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -32,7 +35,8 @@
       "package": "com.shivnshshrmasorganization.flingvibe"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       [
