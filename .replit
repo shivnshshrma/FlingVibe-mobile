@@ -52,4 +52,4 @@ run = ["bash", "-c", "npm install && node server.js"]
 [userenv.shared]
 EXPO_NO_DOTENV = "1"
 EXPO_DEVTOOLS_LISTEN_ADDRESS = "0.0.0.0"
-REACT_NATIVE_PACKAGER_HOSTNAME = ""
+REACT_NATIVE_PACKAGER_HOSTNAME = "fling-vibe-mobile--shivanshkumar6.replit.app"
