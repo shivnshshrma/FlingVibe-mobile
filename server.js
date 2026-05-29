@@ -1,9 +1,29 @@
 const http = require('http');
+const { spawn } = require('child_process');
 const QRCode = require('qrcode');
 
 const GATEWAY_PORT = process.env.PORT || 3000;
-const METRO_PORT = 19001; // fixed internal port, never conflicts with gateway
+const METRO_PORT = 19001; // fixed internal port — never exposed externally
 
+// ─── Start Metro as a child process ────────────────────────────────────────
+// We spawn it here (not in the shell run command) so Replit cannot detect
+// the Metro port and mistakenly route external traffic to it.
+const metro = spawn(
+  'npx',
+  ['expo', 'start', '--port', String(METRO_PORT)],
+  {
+    env: {
+      ...process.env,
+      EXPO_PACKAGER_PROXY_URL: `https://${process.env.REACT_NATIVE_PACKAGER_HOSTNAME || 'localhost'}`,
+    },
+    stdio: 'inherit',
+    shell: false,
+  }
+);
+metro.on('error', err => console.error('Metro spawn error:', err.message));
+metro.on('exit', code => console.log('Metro exited with code', code));
+
+// ─── QR code generation ─────────────────────────────────────────────────────
 const qrCache = new Map();
 
 async function getQr(host) {
@@ -50,37 +70,35 @@ const buildHtml = (qrDataUrl, expUrl) => `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Rewrite any internal Metro addresses in manifest/JS responses
-// so Expo Go fetches bundles from the correct public HTTPS URL
+// ─── URL rewriting ───────────────────────────────────────────────────────────
+// Rewrites any internal Metro addresses in manifest/JS so Expo Go fetches
+// bundles from the correct public HTTPS URL, not localhost:19001
 function rewriteBody(body, publicHost) {
+  const mp = String(METRO_PORT);
   return body
-    .replace(new RegExp(`https?://${publicHost.replace(/\./g, '\\.')}:${METRO_PORT}`, 'g'), `https://${publicHost}`)
-    .replace(new RegExp(`${publicHost.replace(/\./g, '\\.')}:${METRO_PORT}`, 'g'), publicHost)
-    .replace(new RegExp(`http://localhost:${METRO_PORT}`, 'g'), `https://${publicHost}`)
-    .replace(new RegExp(`http://127\\.0\\.0\\.1:${METRO_PORT}`, 'g'), `https://${publicHost}`)
-    .replace(new RegExp(`localhost:${METRO_PORT}`, 'g'), publicHost)
-    .replace(new RegExp(`127\\.0\\.0\\.1:${METRO_PORT}`, 'g'), publicHost);
+    .replace(new RegExp(`https?://${publicHost.replace(/\./g, '\\.')}:${mp}`, 'g'), `https://${publicHost}`)
+    .replace(new RegExp(`${publicHost.replace(/\./g, '\\.')}:${mp}`, 'g'), publicHost)
+    .replace(new RegExp(`http://localhost:${mp}`, 'g'), `https://${publicHost}`)
+    .replace(new RegExp(`http://127\\.0\\.0\\.1:${mp}`, 'g'), `https://${publicHost}`)
+    .replace(new RegExp(`localhost:${mp}`, 'g'), publicHost)
+    .replace(new RegExp(`127\\.0\\.0\\.1:${mp}`, 'g'), publicHost);
 }
 
+// ─── Gateway HTTP server ─────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
-  // Use the configured public hostname (env var) so the QR code and URL rewrites
-  // always point to the real public domain, not the internal proxy address
   const publicHost = process.env.REACT_NATIVE_PACKAGER_HOSTNAME
     || req.headers['host']
     || 'localhost';
-  const accept = req.headers['accept'] || '';
 
-  // Expo Go manifest requests carry these headers
   const isExpoGoRequest = req.headers['expo-platform']
     || req.headers['expo-sdk-version']
     || req.headers['expo-runtime-version'];
 
   if (req.url === '/') {
     if (isExpoGoRequest) {
-      // Genuine Expo Go manifest request — fall through to proxy below
+      // Genuine Expo Go manifest request — proxy to Metro below
     } else {
-      // Everything else at root (browsers, iframes, health checks, curl) →
-      // serve the QR landing page so no one sees the raw web app
+      // All other root requests (browsers, iframes, health checks) → QR page
       try {
         const { qrDataUrl, expUrl } = await getQr(publicHost);
         console.log(`QR → exps://${publicHost}`);

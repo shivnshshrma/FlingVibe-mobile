@@ -8,10 +8,6 @@ channel = "stable-24_11"
 localPort = 3000
 externalPort = 3000
 
-[[ports]]
-localPort = 19001
-externalPort = 80
-
 [env]
 CI = "1"
 EXPO_NO_DOTENV = "1"
@@ -40,12 +36,12 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install && (EXPO_PACKAGER_PROXY_URL=https://fling-vibe-mobile--shivanshkumar6.replit.app npx expo start --port 19001 &) && node server.js"
+args = "npm install && node server.js"
 waitForPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "npm install && (EXPO_PACKAGER_PROXY_URL=https://fling-vibe-mobile--shivanshkumar6.replit.app npx expo start --port 19001 &) && node server.js"]
+run = ["bash", "-c", "npm install && node server.js"]
 
 [userenv]
 
