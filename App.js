@@ -232,7 +232,6 @@ export default function App() {
               <View style={styles.liveDot} />
               <Text style={styles.sessionLabel}>LIVE</Text>
             </View>
-            <Text style={styles.timerText}>{timeLeft}</Text>
             <TouchableOpacity onPress={handleExitSession} style={styles.exitBtn}>
               <Text style={styles.exitBtnText}>End</Text>
             </TouchableOpacity>
