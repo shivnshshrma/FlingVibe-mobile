@@ -133,11 +133,17 @@ export default function App() {
   const cookieInjectionJS = `
     (function() {
       document.cookie = "Member=${sessionToken}; path=/";
+      document.cookie = "Member=${sessionToken}; domain=.flingster.com; path=/";
       try {
         if (navigator.mediaDevices && !navigator.mediaDevices.enumerateDevices) {
           navigator.mediaDevices.enumerateDevices = () => Promise.resolve([]);
         }
       } catch (e) {}
+      var style = document.createElement('style');
+      style.textContent = 'body { padding-bottom: env(safe-area-inset-bottom, 34px) !important; } .footer, [class*="footer"], [class*="nav-bar"], [class*="bottom-bar"] { bottom: env(safe-area-inset-bottom, 34px) !important; }';
+      document.head.appendChild(style);
+      var meta = document.querySelector('meta[name="viewport"]');
+      if (meta) meta.content = meta.content + ', viewport-fit=cover';
       window.ReactNativeWebView.postMessage("READY");
       return true;
     })();
@@ -261,6 +267,7 @@ export default function App() {
             }}
             allowFileAccess={true}
             mixedContentMode="always"
+            contentInsetAdjustmentBehavior="automatic"
             style={styles.webview}
             renderLoading={() => (
               <View style={styles.webviewLoading}>
