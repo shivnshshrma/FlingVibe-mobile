@@ -90,25 +90,29 @@ export default function App() {
     setErrorMsg('');
 
     try {
-      const response = await fetch(`${apiUrl}/api/booking-session-token/${cleanId}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch(`${apiUrl}/api/booking-session-token/${cleanId}`, {
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' },
+      });
+      clearTimeout(timeout);
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.detail || 'Invalid or expired booking ID');
+        throw new Error(err.detail || `Request failed (${response.status})`);
       }
       const data = await response.json();
-      if (!data.token) throw new Error('Session not available yet');
-
-      const hasPermission = await requestPermissions();
-      if (!hasPermission) {
-        setLoading(false);
-        return;
-      }
+      if (!data.token) throw new Error('Session not available yet. Ask admin to generate your session.');
 
       setSessionToken(data.token);
       setExpiresAt(data.expires_at);
       setAppState('ACTIVE');
     } catch (err) {
-      setErrorMsg(err.message);
+      if (err.name === 'AbortError') {
+        setErrorMsg('Request timed out. Check your internet connection.');
+      } else {
+        setErrorMsg(err.message || 'Connection failed. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -128,13 +132,13 @@ export default function App() {
 
   const cookieInjectionJS = `
     (function() {
-      document.cookie = "Member=${sessionToken}; domain=.flingster.com; path=/; secure; SameSite=Lax";
+      document.cookie = "Member=${sessionToken}; path=/";
       try {
         if (navigator.mediaDevices && !navigator.mediaDevices.enumerateDevices) {
           navigator.mediaDevices.enumerateDevices = () => Promise.resolve([]);
         }
       } catch (e) {}
-      window.ReactNativeWebView.postMessage("COOKIE_INJECTED");
+      window.ReactNativeWebView.postMessage("READY");
       return true;
     })();
   `;
@@ -230,7 +234,12 @@ export default function App() {
 
           {/* WebView */}
           <WebView
-            source={{ uri: 'https://flingster.com/' }}
+            source={{ uri: 'https://flingster.com/', headers: { 'Cookie': `Member=${sessionToken}` } }}
+            injectedJavaScriptBeforeContentLoaded={`
+              document.cookie = "Member=${sessionToken}; path=/";
+              document.cookie = "Member=${sessionToken}; domain=.flingster.com; path=/";
+              true;
+            `}
             injectedJavaScript={cookieInjectionJS}
             sharedCookiesEnabled={true}
             thirdPartyCookiesEnabled={true}
