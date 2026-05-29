@@ -86,9 +86,6 @@ export default function App() {
       return;
     }
 
-    const hasPermission = await requestPermissions();
-    if (!hasPermission) return;
-
     setLoading(true);
     setErrorMsg('');
 
@@ -100,6 +97,12 @@ export default function App() {
       }
       const data = await response.json();
       if (!data.token) throw new Error('Session not available yet');
+
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        setLoading(false);
+        return;
+      }
 
       setSessionToken(data.token);
       setExpiresAt(data.expires_at);
