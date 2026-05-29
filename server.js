@@ -2,7 +2,7 @@ const http = require('http');
 const { spawn } = require('child_process');
 const QRCode = require('qrcode');
 
-const GATEWAY_PORT = process.env.PORT || 3000;
+const GATEWAY_PORT = 3000;
 const METRO_PORT = 19001; // fixed internal port — never exposed externally
 
 // ─── Start Metro as a child process ────────────────────────────────────────

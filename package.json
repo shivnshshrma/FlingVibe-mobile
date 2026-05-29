@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node_modules/.bin/expo start --tunnel",
+    "start": "node_modules/.bin/expo start --port 3000 --non-interactive",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
