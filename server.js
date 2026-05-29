@@ -2,7 +2,7 @@ const http = require('http');
 const QRCode = require('qrcode');
 
 const GATEWAY_PORT = process.env.PORT || 3000;
-const METRO_PORT = 8082;
+const METRO_PORT = 19001; // fixed internal port, never conflicts with gateway
 
 const qrCache = new Map();
 
@@ -63,7 +63,11 @@ function rewriteBody(body, publicHost) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const publicHost = req.headers['host'] || 'localhost';
+  // Use the configured public hostname (env var) so the QR code and URL rewrites
+  // always point to the real public domain, not the internal proxy address
+  const publicHost = process.env.REACT_NATIVE_PACKAGER_HOSTNAME
+    || req.headers['host']
+    || 'localhost';
   const accept = req.headers['accept'] || '';
 
   // Expo Go manifest requests carry these headers
