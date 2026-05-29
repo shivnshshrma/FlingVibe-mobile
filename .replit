@@ -1,12 +1,55 @@
 run = "npm install && npm run start"
+modules = ["nodejs-20"]
 
 [nix]
 channel = "stable-24_11"
 
 [[ports]]
-localPort = 8081
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 19001
 externalPort = 80
 
 [env]
 CI = "1"
 EXPO_NO_DOTENV = "1"
+
+[agent]
+expertMode = true
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && node server.js"
+waitForPort = 3000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "npm install && node server.js"]
+
+[userenv]
+
+[userenv.shared]
+EXPO_NO_DOTENV = "1"
+EXPO_DEVTOOLS_LISTEN_ADDRESS = "0.0.0.0"
+REACT_NATIVE_PACKAGER_HOSTNAME = "fling-vibe-mobile--shivanshkumar6.replit.app"
