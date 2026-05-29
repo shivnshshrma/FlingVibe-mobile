@@ -8,6 +8,10 @@ channel = "stable-24_11"
 localPort = 3000
 externalPort = 3000
 
+[[ports]]
+localPort = 19001
+externalPort = 80
+
 [env]
 CI = "1"
 EXPO_NO_DOTENV = "1"
