@@ -106,6 +106,10 @@ export default function App() {
 
       setSessionToken(data.token);
       setExpiresAt(data.expires_at);
+
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) { setLoading(false); return; }
+
       setAppState('ACTIVE');
     } catch (err) {
       if (err.name === 'AbortError') {
